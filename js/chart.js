@@ -81,8 +81,31 @@ export class ChartRenderer {
       this.canvas.style.cursor = 'default'
     })
 
+    // Сброс двойным кликом
+    this.canvas.addEventListener('dblclick', () => {
+      this.resetView()
+    })
+
+    // Сброс горячей клавишей R и на русской раскладке К
+    document.addEventListener('keydown', (e) => {
+      if (
+        (e.key === 'r' || e.key === 'R' || e.key === 'к' || e.key === 'К') &&
+        !e.ctrlKey &&
+        !e.metaKey
+      ) {
+        this.resetView()
+      }
+    })
+
     // Стиль курсора по умолчанию
     this.canvas.style.cursor = 'grab'
+  }
+
+  resetView() {
+    this.scale = 1
+    this.offsetX = 0
+    this.offsetY = 0
+    this.render(this.currentData, this.currentColor)
   }
 
   setCanvasSize() {
