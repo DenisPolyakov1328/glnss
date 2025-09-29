@@ -39,4 +39,4 @@
 ## 🌐 Деплой
 
 Приложение развернуто на Vercel:  
-**https://table-graph-app.vercel.app**
+**https://table-graph-app-kohl.vercel.app**
