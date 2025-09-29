@@ -10,17 +10,24 @@ export class ChartRenderer {
     this.ctx = this.canvas.getContext('2d')
     this.padding = 50
 
+    // Свойства для трансформаций
     this.scale = 1
     this.offsetX = 0
     this.offsetY = 0
     this.currentData = []
     this.currentColor = '#ff0000'
 
+    // Свойства для перетаскивания
+    this.isDragging = false
+    this.lastMouseX = 0
+    this.lastMouseY = 0
+
     this.setCanvasSize()
     this.setupInteractions()
   }
 
   setupInteractions() {
+    // Зумирование колесиком мыши
     this.canvas.addEventListener('wheel', (e) => {
       e.preventDefault()
 
@@ -40,6 +47,42 @@ export class ChartRenderer {
 
       this.render(this.currentData, this.currentColor)
     })
+
+    // Перетаскивание
+    this.canvas.addEventListener('mousedown', (e) => {
+      this.isDragging = true
+      this.lastMouseX = e.clientX
+      this.lastMouseY = e.clientY
+      this.canvas.style.cursor = 'grabbing'
+    })
+
+    this.canvas.addEventListener('mousemove', (e) => {
+      if (!this.isDragging) return
+
+      const deltaX = e.clientX - this.lastMouseX
+      const deltaY = e.clientY - this.lastMouseY
+
+      this.offsetX += deltaX
+      this.offsetY += deltaY
+
+      this.lastMouseX = e.clientX
+      this.lastMouseY = e.clientY
+
+      this.render(this.currentData, this.currentColor)
+    })
+
+    this.canvas.addEventListener('mouseup', () => {
+      this.isDragging = false
+      this.canvas.style.cursor = 'grab'
+    })
+
+    this.canvas.addEventListener('mouseleave', () => {
+      this.isDragging = false
+      this.canvas.style.cursor = 'default'
+    })
+
+    // Стиль курсора по умолчанию
+    this.canvas.style.cursor = 'grab'
   }
 
   setCanvasSize() {
