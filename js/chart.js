@@ -9,7 +9,37 @@ export class ChartRenderer {
     this.canvas = canvas
     this.ctx = this.canvas.getContext('2d')
     this.padding = 50
+
+    this.scale = 1
+    this.offsetX = 0
+    this.offsetY = 0
+    this.currentData = []
+    this.currentColor = '#ff0000'
+
     this.setCanvasSize()
+    this.setupInteractions()
+  }
+
+  setupInteractions() {
+    this.canvas.addEventListener('wheel', (e) => {
+      e.preventDefault()
+
+      const zoomIntensity = 0.1
+      const mouseX = e.offsetX
+      const mouseY = e.offsetY
+
+      const wheel = e.deltaY < 0 ? 1 : -1
+      const zoom = Math.exp(wheel * zoomIntensity)
+
+      const newScale = this.scale * zoom
+      if (newScale < 0.1 || newScale > 10) return
+
+      this.scale = newScale
+      this.offsetX = mouseX - (mouseX - this.offsetX) * zoom
+      this.offsetY = mouseY - (mouseY - this.offsetY) * zoom
+
+      this.render(this.currentData, this.currentColor)
+    })
   }
 
   setCanvasSize() {
@@ -29,7 +59,7 @@ export class ChartRenderer {
     if (width < this.padding * 2 || height < this.padding * 2) return
 
     this.ctx.strokeStyle = '#000'
-    this.ctx.lineWidth = 2
+    this.ctx.lineWidth = 2 / this.scale
 
     this.ctx.beginPath()
     this.ctx.moveTo(this.padding, height - this.padding)
@@ -42,7 +72,7 @@ export class ChartRenderer {
     this.ctx.stroke()
 
     this.ctx.fillStyle = '#000'
-    this.ctx.font = '14px Arial'
+    this.ctx.font = `${14 / this.scale}px Arial`
     this.ctx.fillText('X', width - 20, height - this.padding + 20)
     this.ctx.fillText('Y', this.padding - 25, 20)
   }
@@ -79,9 +109,9 @@ export class ChartRenderer {
     const yStep = this.calculateOptimalStep(effectiveYRange)
 
     this.ctx.strokeStyle = '#000'
-    this.ctx.lineWidth = 1
+    this.ctx.lineWidth = 1 / this.scale
     this.ctx.fillStyle = '#000'
-    this.ctx.font = '10px Arial'
+    this.ctx.font = `${10 / this.scale}px Arial`
     this.ctx.textAlign = 'center'
 
     for (let value = effectiveXMin; value <= effectiveXMax; value += xStep) {
@@ -89,11 +119,15 @@ export class ChartRenderer {
         this.padding + ((value - effectiveXMin) / effectiveXRange) * graphWidth
 
       this.ctx.beginPath()
-      this.ctx.moveTo(x, height - this.padding - 5)
-      this.ctx.lineTo(x, height - this.padding + 5)
+      this.ctx.moveTo(x, height - this.padding - 5 / this.scale)
+      this.ctx.lineTo(x, height - this.padding + 5 / this.scale)
       this.ctx.stroke()
 
-      this.ctx.fillText(value.toFixed(1), x, height - this.padding + 20)
+      this.ctx.fillText(
+        value.toFixed(1),
+        x,
+        height - this.padding + 20 / this.scale
+      )
     }
 
     this.ctx.textAlign = 'right'
@@ -105,11 +139,15 @@ export class ChartRenderer {
         ((value - effectiveYMin) / effectiveYRange) * graphHeight
 
       this.ctx.beginPath()
-      this.ctx.moveTo(this.padding - 5, y)
-      this.ctx.lineTo(this.padding + 5, y)
+      this.ctx.moveTo(this.padding - 5 / this.scale, y)
+      this.ctx.lineTo(this.padding + 5 / this.scale, y)
       this.ctx.stroke()
 
-      this.ctx.fillText(value.toFixed(1), this.padding - 10, y + 3)
+      this.ctx.fillText(
+        value.toFixed(1),
+        this.padding - 10 / this.scale,
+        y + 3 / this.scale
+      )
     }
   }
 
@@ -128,7 +166,7 @@ export class ChartRenderer {
     if (width <= 0 || height <= 0) return
 
     this.ctx.strokeStyle = '#e0e0e0'
-    this.ctx.lineWidth = 0.5
+    this.ctx.lineWidth = 0.5 / this.scale
 
     for (let x = this.padding; x <= this.canvas.width - this.padding; x += 50) {
       this.ctx.beginPath()
@@ -179,7 +217,7 @@ export class ChartRenderer {
 
     if (validData.length >= 2) {
       this.ctx.strokeStyle = color
-      this.ctx.lineWidth = 3
+      this.ctx.lineWidth = 3 / this.scale
       this.ctx.beginPath()
 
       validData.forEach((point, index) => {
@@ -205,11 +243,11 @@ export class ChartRenderer {
 
       this.ctx.fillStyle = color
       this.ctx.beginPath()
-      this.ctx.arc(x, y, 5, 0, Math.PI * 2)
+      this.ctx.arc(x, y, 5 / this.scale, 0, Math.PI * 2)
       this.ctx.fill()
 
       this.ctx.strokeStyle = '#fff'
-      this.ctx.lineWidth = 2
+      this.ctx.lineWidth = 2 / this.scale
       this.ctx.stroke()
     })
 
@@ -223,7 +261,7 @@ export class ChartRenderer {
     const yRange = yMax - yMin || 1
 
     this.ctx.fillStyle = color
-    this.ctx.font = 'bold 11px Arial'
+    this.ctx.font = `${11 / this.scale}px Arial`
     this.ctx.textAlign = 'center'
 
     data.forEach((point, index) => {
@@ -234,14 +272,14 @@ export class ChartRenderer {
           this.padding -
           ((point.y - yMin) / yRange) * height
 
-        this.ctx.fillText(`(${point.x}, ${point.y})`, x, y - 10)
+        this.ctx.fillText(`(${point.x}, ${point.y})`, x, y - 10 / this.scale)
       }
     })
   }
 
   drawNoDataMessage() {
     this.ctx.fillStyle = '#999'
-    this.ctx.font = '16px Arial'
+    this.ctx.font = `${16 / this.scale}px Arial`
     this.ctx.textAlign = 'center'
     this.ctx.fillText(
       'Нет данных для отображения',
@@ -253,9 +291,19 @@ export class ChartRenderer {
   render(data, color = '#ff0000') {
     this.setCanvasSize()
     this.clear()
+
+    this.currentData = data
+    this.currentColor = color
+
+    this.ctx.save()
+    this.ctx.translate(this.offsetX, this.offsetY)
+    this.ctx.scale(this.scale, this.scale)
+
     this.drawGrid()
     this.drawAxes()
     this.drawAxisTicksAndLabels(data)
     this.drawChart(data, color)
+
+    this.ctx.restore()
   }
 }
