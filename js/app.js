@@ -92,16 +92,24 @@ export class TableGraphApp {
         chart3: new ChartRenderer('chart3')
       }
       this.chartsInitialized = true
-      console.log('Графики инициализированы')
+
+      this.drawEmptyCharts()
     } catch (error) {
       console.error('Ошибка при инициализации графиков:', error)
+    }
+  }
+
+  drawEmptyCharts() {
+    if (this.chartsInitialized) {
+      this.charts.chart1.render([], '#ff0000')
+      this.charts.chart2.render([], '#0000ff')
+      this.charts.chart3.render([], '#00aa00')
     }
   }
 
   calculateResults() {
     try {
       if (!this.chartsInitialized) {
-        console.log('Графики не инициализированы, пытаемся инициализировать...')
         this.initCharts()
 
         if (!this.chartsInitialized) {
@@ -115,6 +123,7 @@ export class TableGraphApp {
       if (invalidCells.length > 0) {
         TableValidator.highlightInvalidCells(invalidCells)
         alert('Заполните все ячейки в таблицах!')
+        this.drawEmptyCharts()
         return
       }
 
@@ -123,6 +132,7 @@ export class TableGraphApp {
 
       if (data1.length === 0 || data2.length === 0) {
         alert('Добавьте данные в обе таблицы!')
+        this.drawEmptyCharts()
         return
       }
 
