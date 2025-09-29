@@ -1,0 +1,261 @@
+// Рендер графиков
+export class ChartRenderer {
+  constructor(canvasId) {
+    const canvas = document.getElementById(canvasId)
+    if (!canvas) {
+      throw new Error(`Canvas элемент с id "${canvasId}" не найден`)
+    }
+
+    this.canvas = canvas
+    this.ctx = this.canvas.getContext('2d')
+    this.padding = 50
+    this.setCanvasSize()
+  }
+
+  setCanvasSize() {
+    const rect = this.canvas.getBoundingClientRect()
+    this.canvas.width = Math.max(rect.width, 300)
+    this.canvas.height = Math.max(rect.height, 200)
+  }
+
+  clear() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
+  }
+
+  drawAxes() {
+    const width = this.canvas.width
+    const height = this.canvas.height
+
+    if (width < this.padding * 2 || height < this.padding * 2) return
+
+    this.ctx.strokeStyle = '#000'
+    this.ctx.lineWidth = 2
+
+    this.ctx.beginPath()
+    this.ctx.moveTo(this.padding, height - this.padding)
+    this.ctx.lineTo(width - this.padding, height - this.padding)
+    this.ctx.stroke()
+
+    this.ctx.beginPath()
+    this.ctx.moveTo(this.padding, this.padding)
+    this.ctx.lineTo(this.padding, height - this.padding)
+    this.ctx.stroke()
+
+    this.ctx.fillStyle = '#000'
+    this.ctx.font = '14px Arial'
+    this.ctx.fillText('X', width - 20, height - this.padding + 20)
+    this.ctx.fillText('Y', this.padding - 25, 20)
+  }
+
+  drawAxisTicksAndLabels(data) {
+    if (!data || data.length === 0) return
+
+    const validData = data.filter((point) => !isNaN(point.x) && !isNaN(point.y))
+    if (validData.length === 0) return
+
+    const width = this.canvas.width
+    const height = this.canvas.height
+    const graphWidth = width - this.padding * 2
+    const graphHeight = height - this.padding * 2
+
+    const xValues = validData.map((point) => point.x)
+    const yValues = validData.map((point) => point.y)
+    const xMin = Math.min(...xValues)
+    const xMax = Math.max(...xValues)
+    const yMin = Math.min(...yValues)
+    const yMax = Math.max(...yValues)
+
+    const xRange = xMax - xMin || 1
+    const yRange = yMax - yMin || 1
+
+    const effectiveXRange = xRange === 0 ? 2 : xRange
+    const effectiveYRange = yRange === 0 ? 2 : yRange
+    const effectiveXMin = xRange === 0 ? xMin - 1 : xMin
+    const effectiveXMax = xRange === 0 ? xMax + 1 : xMax
+    const effectiveYMin = yRange === 0 ? yMin - 1 : yMin
+    const effectiveYMax = yRange === 0 ? yMax + 1 : yMax
+
+    const xStep = this.calculateOptimalStep(effectiveXRange)
+    const yStep = this.calculateOptimalStep(effectiveYRange)
+
+    this.ctx.strokeStyle = '#000'
+    this.ctx.lineWidth = 1
+    this.ctx.fillStyle = '#000'
+    this.ctx.font = '10px Arial'
+    this.ctx.textAlign = 'center'
+
+    for (let value = effectiveXMin; value <= effectiveXMax; value += xStep) {
+      const x =
+        this.padding + ((value - effectiveXMin) / effectiveXRange) * graphWidth
+
+      this.ctx.beginPath()
+      this.ctx.moveTo(x, height - this.padding - 5)
+      this.ctx.lineTo(x, height - this.padding + 5)
+      this.ctx.stroke()
+
+      this.ctx.fillText(value.toFixed(1), x, height - this.padding + 20)
+    }
+
+    this.ctx.textAlign = 'right'
+
+    for (let value = effectiveYMin; value <= effectiveYMax; value += yStep) {
+      const y =
+        height -
+        this.padding -
+        ((value - effectiveYMin) / effectiveYRange) * graphHeight
+
+      this.ctx.beginPath()
+      this.ctx.moveTo(this.padding - 5, y)
+      this.ctx.lineTo(this.padding + 5, y)
+      this.ctx.stroke()
+
+      this.ctx.fillText(value.toFixed(1), this.padding - 10, y + 3)
+    }
+  }
+
+  calculateOptimalStep(range) {
+    const optimalTickCount = 5
+    const roughStep = range / optimalTickCount
+    const magnitude = Math.pow(10, Math.floor(Math.log10(roughStep)))
+    const step = Math.ceil(roughStep / magnitude) * magnitude
+    return step
+  }
+
+  drawGrid() {
+    const width = this.canvas.width - this.padding * 2
+    const height = this.canvas.height - this.padding * 2
+
+    if (width <= 0 || height <= 0) return
+
+    this.ctx.strokeStyle = '#e0e0e0'
+    this.ctx.lineWidth = 0.5
+
+    for (let x = this.padding; x <= this.canvas.width - this.padding; x += 50) {
+      this.ctx.beginPath()
+      this.ctx.moveTo(x, this.padding)
+      this.ctx.lineTo(x, this.canvas.height - this.padding)
+      this.ctx.stroke()
+    }
+
+    for (
+      let y = this.padding;
+      y <= this.canvas.height - this.padding;
+      y += 50
+    ) {
+      this.ctx.beginPath()
+      this.ctx.moveTo(this.padding, y)
+      this.ctx.lineTo(this.canvas.width - this.padding, y)
+      this.ctx.stroke()
+    }
+  }
+
+  drawChart(data, color = '#ff0000') {
+    if (!data || data.length === 0) {
+      this.drawNoDataMessage()
+      return
+    }
+
+    const validData = data.filter((point) => !isNaN(point.x) && !isNaN(point.y))
+
+    if (validData.length === 0) {
+      this.drawNoDataMessage()
+      return
+    }
+
+    const width = this.canvas.width - this.padding * 2
+    const height = this.canvas.height - this.padding * 2
+
+    if (width <= 0 || height <= 0) return
+
+    const xValues = validData.map((point) => point.x)
+    const yValues = validData.map((point) => point.y)
+    const xMin = Math.min(...xValues)
+    const xMax = Math.max(...xValues)
+    const yMin = Math.min(...yValues)
+    const yMax = Math.max(...yValues)
+
+    const xRange = xMax - xMin || 1
+    const yRange = yMax - yMin || 1
+
+    if (validData.length >= 2) {
+      this.ctx.strokeStyle = color
+      this.ctx.lineWidth = 3
+      this.ctx.beginPath()
+
+      validData.forEach((point, index) => {
+        const x = this.padding + ((point.x - xMin) / xRange) * width
+        const y =
+          this.canvas.height -
+          this.padding -
+          ((point.y - yMin) / yRange) * height
+
+        if (index === 0) {
+          this.ctx.moveTo(x, y)
+        } else {
+          this.ctx.lineTo(x, y)
+        }
+      })
+      this.ctx.stroke()
+    }
+
+    validData.forEach((point) => {
+      const x = this.padding + ((point.x - xMin) / xRange) * width
+      const y =
+        this.canvas.height - this.padding - ((point.y - yMin) / yRange) * height
+
+      this.ctx.fillStyle = color
+      this.ctx.beginPath()
+      this.ctx.arc(x, y, 5, 0, Math.PI * 2)
+      this.ctx.fill()
+
+      this.ctx.strokeStyle = '#fff'
+      this.ctx.lineWidth = 2
+      this.ctx.stroke()
+    })
+
+    this.drawPointLabels(validData, xMin, xMax, yMin, yMax, color)
+  }
+
+  drawPointLabels(data, xMin, xMax, yMin, yMax, color) {
+    const width = this.canvas.width - this.padding * 2
+    const height = this.canvas.height - this.padding * 2
+    const xRange = xMax - xMin || 1
+    const yRange = yMax - yMin || 1
+
+    this.ctx.fillStyle = color
+    this.ctx.font = 'bold 11px Arial'
+    this.ctx.textAlign = 'center'
+
+    data.forEach((point, index) => {
+      if (index === 0 || index === data.length - 1 || index % 2 === 0) {
+        const x = this.padding + ((point.x - xMin) / xRange) * width
+        const y =
+          this.canvas.height -
+          this.padding -
+          ((point.y - yMin) / yRange) * height
+
+        this.ctx.fillText(`(${point.x}, ${point.y})`, x, y - 10)
+      }
+    })
+  }
+
+  drawNoDataMessage() {
+    this.ctx.fillStyle = '#999'
+    this.ctx.font = '16px Arial'
+    this.ctx.textAlign = 'center'
+    this.ctx.fillText(
+      'Нет данных для отображения',
+      this.canvas.width / 2,
+      this.canvas.height / 2
+    )
+  }
+
+  render(data, color = '#ff0000') {
+    this.setCanvasSize()
+    this.clear()
+    this.drawGrid()
+    this.drawAxes()
+    this.drawAxisTicksAndLabels(data)
+    this.drawChart(data, color)
+  }
+}
